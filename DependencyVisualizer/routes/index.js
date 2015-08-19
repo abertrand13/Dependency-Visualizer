@@ -21,14 +21,16 @@ exports.index = function(req, res){
           if(fs.statSync(newPath).isFile()) {
             //If we've hit a file, read it for it's dependencies
             console.log(newPath);
-            fs.readFile('newPath', function(error, data) {
+            fs.readFile(newPath, function(error, data) {
               if(error) {
                 console.log(error);
               } else {
                 var fileData = data.toString();
 
                 var defineStatementRegex = new RegExp(/define\(\[\n(\s+\'[\w\/]+\',\n)+(\s+\'[\w\/]+\'\n)\],/g);
-                var defineStatement = defineStatementRegex.exec(fileData)[0]; //only get the matched string
+                var defineStatement = defineStatementRegex.exec(fileData); //only get the matched string
+                if(!defineStatement) return;
+                defineStatement = defineStatement[0];
 
                 var dependencyRegex = new RegExp(/\'([\w\/]+)\'/g);
                 var match, dependencies = [];
@@ -44,10 +46,11 @@ exports.index = function(req, res){
                   }
                 }
 
-                fileData.newPath.dependencies = dependencies;
+                fileData.newPath = dependencies ? dependencies : null;
                 console.log(dependencies);
               }
             });
+            return;
           } else {
             //If we've hit a directory, read through it
             readFileTree(newPath + '/');
@@ -56,6 +59,11 @@ exports.index = function(req, res){
       }
     });
   }
+
+  /*setTimeout(function() {
+    console.log("done parsing");
+  }, 0);*/
+
 
   res.render('index', { title: 'Express' });
 };
