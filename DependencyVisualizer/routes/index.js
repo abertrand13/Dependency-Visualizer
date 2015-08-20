@@ -4,7 +4,11 @@ var fs = require('fs');
  * GET home page.
  */
 
-exports.index = function(req, res){
+exports.index = function(req, res) {
+  res.render('index', { title: 'Express' });
+}
+
+exports.map = function(req, res){
   //Recursively walk the file tree.
   var path = './';
   var fileDependencies = {};
@@ -51,7 +55,5 @@ exports.index = function(req, res){
     });
   }
 
-  console.log(fileDependencies);
-
-  res.render('index', { title: 'Express' });
+  res.json(fileDependencies);
 };
