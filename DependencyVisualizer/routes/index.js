@@ -23,9 +23,13 @@ exports.map = function(req, res){
       var newPath = path + file;
       if(fs.statSync(newPath).isFile()) {
         //If we've hit a file, read it for it's dependencies
-        console.log(newPath);
         var data = fs.readFileSync(newPath);
         var fileData = data.toString();
+
+        var filePathFilter = new RegExp(/\.\/([\w\/-]+)\.\w+/g);
+        var processedPath = filePathFilter.exec(newPath)[1]; //get matching string, (without initial ./ and ending .js)
+        fileDependencies[processedPath] = {}; // trim the initial './'
+
 
         var defineStatementRegex = new RegExp(/define\(\[\n(\s+\'[\w\/]+\',\n)+(\s+\'[\w\/]+\'\n)\],/g);
         var defineStatement = defineStatementRegex.exec(fileData);
@@ -46,8 +50,8 @@ exports.map = function(req, res){
           }
         }
 
-        fileDependencies[newPath] = {};
-        fileDependencies[newPath]["dependencies"] = dependencies;
+        
+        fileDependencies[processedPath]["dependencies"] = dependencies;
       } else {
         //If we've hit a directory, read through it
         readFileTree(newPath + '/');

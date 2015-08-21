@@ -28,3 +28,6 @@ node_modules
 
 # Apple sucks
 .DS_Store
+
+# Ignore Javascript downloaded library
+DependencyVisualizer/public/lib
