@@ -33,6 +33,7 @@ $(document).ready(function() {
       node.id = el;
       node.attr("fill", "#f04");
       node.data("file", el);
+      node.data("used", false); //whether or not this node has either dependencies or dependents
       node.data("dependencies", data[el].dependencies);
 
       node.mousedown(function() {
@@ -52,6 +53,7 @@ $(document).ready(function() {
       var node = canvas.getById(el);
       var nodeDeps = node.data("dependencies");
       if(!nodeDeps) { return; }
+      node.data("used", true); //if it has dependencies, we want to show it on screen
       nodeDeps.map(function(dep) {
         var dependency = canvas.getById(dep);
         //hacky, fix eventually
@@ -68,6 +70,9 @@ $(document).ready(function() {
         node.drag(handleDrag);
         dependency.drag(handleDrag);
 
+        //mark the dependency as having a dependent.  Thus, should be on screen
+        dependency.data("used", true);
+
         function handleDrag() {
           line.attr("path", [
             "M", node.attr("cx"), node.attr("cy"),
@@ -76,5 +81,13 @@ $(document).ready(function() {
         }
       });
     });
+
+    //Prune all unused nodes
+    Object.keys(data).map(function(el) {
+      var node = canvas.getById(el);
+      if(!node.data("used")) {
+        node.remove();
+      }
+    })
 	})
 });
