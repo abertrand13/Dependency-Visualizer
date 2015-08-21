@@ -31,3 +31,6 @@ node_modules
 
 # Ignore Javascript downloaded library
 DependencyVisualizer/public/lib
+
+# Ignore the entirety of firebird/static/dev/scripts that I plopped in here for testing
+DependencyVisualizer/megatest
