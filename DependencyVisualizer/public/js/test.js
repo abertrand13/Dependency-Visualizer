@@ -11,9 +11,9 @@ $(document).ready(function() {
       node.id = el;
       node.attr("fill", "#f04");
       node.attr("stroke", "none");
-      node.data("score", 0);
-      node.data("used", false); //whether or not this node has either dependencies or dependents
-      node.data("dependencies", data[el].dependencies);
+      node.score = 0;
+      node.used = false; //whether or not this node has either dependencies or dependents
+      node.dependencies = data[el].dependencies;
       //if(data[el].dependencies) {
         //console.log(data[el].dependencies);
         //node.attr("cy", data[el].dependencies.length + 20);
@@ -49,7 +49,7 @@ $(document).ready(function() {
 
       function walkUpTree(node, nodeFn) {
         nodeFn(node);
-        var nodeDeps = node.data("dependencies");
+        var nodeDeps = node.dependencies;
         if(nodeDeps) {
           nodeDeps.map(function(el) {
             walkUpTree(canvas.getById(el), nodeFn);
@@ -67,9 +67,9 @@ $(document).ready(function() {
     //There's probably some fancy algorithm to optimize this, but I'm probably not going to use it.
     Object.keys(data).map(function(el) {
       var node = canvas.getById(el);
-      var nodeDeps = node.data("dependencies");
+      var nodeDeps = node.dependencies;
       if(!nodeDeps) { return; }
-      node.data("used", true); //if it has dependencies, we want to show it on screen
+      node.used = true; //if it has dependencies, we want to show it on screen
       nodeDeps.map(function(dep) {
         var dependency = canvas.getById(dep);
         //hacky, fix eventually
@@ -87,8 +87,8 @@ $(document).ready(function() {
         dependency.drag(handleDrag);
 
         //mark the dependency as having a dependent.  Thus, should be on screen
-        dependency.data("used", true);
-        dependency.data("score", dependency.data("score") + 1);
+        dependency.used = true;
+        dependency.score++;
 
         function handleDrag() {
           line.attr("path", [
@@ -118,7 +118,7 @@ $(document).ready(function() {
     //Prune all unused nodes
     Object.keys(data).map(function(el) {
       var node = canvas.getById(el);
-      if(!node.data("used")) {
+      if(!node.used) {
         node.remove();
       }
     });
