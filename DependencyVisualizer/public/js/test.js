@@ -4,42 +4,58 @@ $(document).ready(function() {
 
     var canvas = Raphael(0,0,window.innerWidth, window.innerHeight);
     canvas.canvas.style.backgroundColor = "#333";
-    /*var circle = canvas.circle(50,40,10);
-    circle.attr("fill", "#f00");
-    circle.attr("stroke", "#000");
-
-    circle.mousedown(function() {
-      console.log("YOU CLICKED THE CIRCLE!");
-    });*/
-
-    //D3 and Raphael do not play nicely together
-
-    /*testData.map(function(el) {
-      var circle = canvas.circle(Math.random() * 300, Math.random() * 300, 10);
-      circle.attr("fill", "#f00");
-      circle.data("name", "circle"+el);
-      circle.mousedown(function() {
-        console.log(circle.data("name"));
-      });
-      circle.drag(function onMove(dx, dy, x, y) {
-        circle.attr("cx", x);
-        circle.attr("cy", y);
-      });
-    });*/
 
     //Draw nodes
     Object.keys(data).map(function(el) {
-      var node = canvas.circle(Math.random() * canvas.width, Math.random() * canvas.height, 20);
+      var node = canvas.circle(Math.random() * canvas.width, Math.random() * canvas.height, 15);
       node.id = el;
       node.attr("fill", "#f04");
-      node.data("file", el);
-      node.data("used", false); //whether or not this node has either dependencies or dependents
-      node.data("dependencies", data[el].dependencies);
+      node.attr("stroke", "none");
+      node.score = 0;
+      node.used = false; //whether or not this node has either dependencies or dependents
+      node.dependencies = data[el].dependencies;
+      //if(data[el].dependencies) {
+        //console.log(data[el].dependencies);
+        //node.attr("cy", data[el].dependencies.length + 20);
+      //}
+
+      //NEED TO REFACTOR THE ORDER OF EVERYTHING HERE SO YOU'RE NOT DOING SO MUCH EDGE CASE CHECKING
+
+      //make only relevant lines show somehow (option to turn all lines on and off?  hiding all lines is gonna be difficult i suppose...well, make it a function)
+      //fix singleton no dependency node...always sseems to be at least 1...
 
       node.mousedown(function() {
-        console.log("Name: " + node.data("file"));
+        /*console.log("Name: " + node.data("file"));
         console.log("Dependencies: " + node.data("dependencies"));
+        console.log("Score: " + node.data("score"));*/
+
+        /*walkUpTree(node, function(thisNode) {
+          thisNode.nodeGlow = thisNode.glow({
+            color : "#0FF",
+            width : 20,
+            opacity : 1
+          });
+        });*/
       });
+
+      node.mouseup(function() {
+        /*walkUpTree(node, function(thisNode) {
+          if(thisNode.nodeGlow) {
+            thisNode.nodeGlow.remove();
+            thisNode.nodeGlow = null;
+          }
+        });*/
+      });
+
+      function walkUpTree(node, nodeFn) {
+        nodeFn(node);
+        var nodeDeps = node.dependencies;
+        if(nodeDeps) {
+          nodeDeps.map(function(el) {
+            walkUpTree(canvas.getById(el), nodeFn);
+          });
+        }
+      }
 
       node.drag(function onMove(dx,dy, x, y) {
         node.attr("cx", x);
@@ -51,9 +67,9 @@ $(document).ready(function() {
     //There's probably some fancy algorithm to optimize this, but I'm probably not going to use it.
     Object.keys(data).map(function(el) {
       var node = canvas.getById(el);
-      var nodeDeps = node.data("dependencies");
+      var nodeDeps = node.dependencies;
       if(!nodeDeps) { return; }
-      node.data("used", true); //if it has dependencies, we want to show it on screen
+      node.used = true; //if it has dependencies, we want to show it on screen
       nodeDeps.map(function(dep) {
         var dependency = canvas.getById(dep);
         //hacky, fix eventually
@@ -65,13 +81,14 @@ $(document).ready(function() {
         ]);
         line.attr("arrow-end", "classic-wide");
         line.attr("stroke", "#FFF");
-        line.attr("stroke-width", 3);
+        line.attr("stroke-width", 1);
 
         node.drag(handleDrag);
         dependency.drag(handleDrag);
 
         //mark the dependency as having a dependent.  Thus, should be on screen
-        dependency.data("used", true);
+        dependency.used = true;
+        dependency.score++;
 
         function handleDrag() {
           line.attr("path", [
@@ -81,13 +98,29 @@ $(document).ready(function() {
         }
       });
     });
+    
+    //generate scores and whether a node is 'used' or not
+    /*Object.keys(data).map(function(el) {
+      var node = canvas.getById(el);
+      var nodeDeps = node.dependencies;
+      if(nodeDeps) {
+        node.used = true;
+        nodeDeps.map(function(dependency) {
+          var dep = canvas.getById(dependency);
+          if(dep) {
+            dep.used = true;
+            dep.score++;
+          }
+        });
+      }
+    })*/
 
     //Prune all unused nodes
     Object.keys(data).map(function(el) {
       var node = canvas.getById(el);
-      if(!node.data("used")) {
+      if(!node.used) {
         node.remove();
       }
-    })
-	})
+    });
+	});
 });
