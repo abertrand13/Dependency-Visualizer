@@ -1,29 +1,22 @@
 $(document).ready(function() {
 	$.get("/map", function(data) {
-		console.log(data);
-
     var canvas = Raphael(0,0,window.innerWidth, window.innerHeight);
     canvas.canvas.style.backgroundColor = "#333";
 
+    var dataKeys = Object.keys(data);
+    var selectedNode;
+
     //Draw nodes
-    Object.keys(data).map(function(el) {
+    dataKeys.map(function(el) {
       var node = canvas.circle(Math.random() * canvas.width, Math.random() * canvas.height, 15);
       node.id = el;
       node.attr("fill", "#f04");
       node.attr("stroke", "none");
       node.score = 0;
-      node.used = false; //whether or not this node has either dependencies or dependents
+      node.used = false; //whether or not this node has either dependencies or dependents (TBD)
       node.dependencies = data[el].dependencies;
-      //if(data[el].dependencies) {
-        //console.log(data[el].dependencies);
-        //node.attr("cy", data[el].dependencies.length + 20);
-      //}
 
-      //NEED TO REFACTOR THE ORDER OF EVERYTHING HERE SO YOU'RE NOT DOING SO MUCH EDGE CASE CHECKING
-
-      //make only relevant lines show somehow (option to turn all lines on and off?  hiding all lines is gonna be difficult i suppose...well, make it a function)
-      //fix singleton no dependency node...always sseems to be at least 1...
-
+      //add listeners for various important events
       node.mousedown(function() {
         /*console.log("Name: " + node.data("file"));
         console.log("Dependencies: " + node.data("dependencies"));
@@ -36,6 +29,37 @@ $(document).ready(function() {
             opacity : 1
           });
         });*/
+
+        if(selectedNode !== node) {
+          //remove lines from the old node
+          if(selectedNode) {
+            walkUpTree(selectedNode,
+              function(node) {
+                //debugger;
+                if(node.lines) { //we need this check for dependencies that get called here, but not to create lines (because they themselves have no dependencies)
+                  console.log(node.lines.length);
+                  node.lines.map(function(el) {
+                    console.log("Removing a line");
+                    el.remove();
+                  });
+                  node.lines = [];
+                }
+              },
+              function() {});
+          }
+          //draw lines from the newly clicked node
+          walkUpTree(node,
+            function(node) { node.lines = []; },
+            function(node, dep) {
+              var line = canvas.path();
+              node.lines.push(line);
+              drawLine(line, node, dep);
+              styleLine(line);
+              node.drag(function() { drawLine(line, node, dep); });
+              dep.drag(function() { drawLine(line, node, dep); });
+            });
+        }
+        selectedNode = node;
       });
 
       node.mouseup(function() {
@@ -47,12 +71,15 @@ $(document).ready(function() {
         });*/
       });
 
-      function walkUpTree(node, nodeFn) {
-        nodeFn(node);
+      function walkUpTree(node, nodeFn, nodeDepFn) {
+        if(nodeFn) { nodeFn(node); }
         var nodeDeps = node.dependencies;
         if(nodeDeps) {
           nodeDeps.map(function(el) {
-            walkUpTree(canvas.getById(el), nodeFn);
+            var dep = canvas.getById(el);
+            if(!dep) {return;} //sometimes dependencies aren't found due to file system irregularites.  This should probably be fixed at some point...
+            if(nodeDepFn) { nodeDepFn(node, dep); }
+            walkUpTree(dep, nodeFn, nodeDepFn);
           });
         }
       }
@@ -63,44 +90,47 @@ $(document).ready(function() {
       })
     });
 
+    function styleLine(line) {
+      line.attr("arrow-end", "block-wide-long");
+      line.attr("stroke", "#FFF");
+      line.attr("stroke-width", 1);
+    }
+    
+    function drawLine(line, node, dep) {
+      line.attr("path", [
+        "M", node.attr("cx"), node.attr("cy"),
+        "L", dep.attr("cx"), dep.attr("cy")
+      ]);
+    }
+
     //Draw lines between nodes
     //There's probably some fancy algorithm to optimize this, but I'm probably not going to use it.
-    Object.keys(data).map(function(el) {
+    //UNCOMMENT TO SEE SHITSHOW
+    /*dataKeys.map(function(el) {
       var node = canvas.getById(el);
       var nodeDeps = node.dependencies;
       if(!nodeDeps) { return; }
       node.used = true; //if it has dependencies, we want to show it on screen
-      nodeDeps.map(function(dep) {
-        var dependency = canvas.getById(dep);
+      nodeDeps.map(function(dependency) {
+        var dep = canvas.getById(dependency);
         //hacky, fix eventually
-        if(!dependency) return;
+        if(!dep) return;
         //draw the line
-        var line = canvas.path([
-          "M", node.attr("cx"), node.attr("cy"),
-          "L", dependency.attr("cx"), dependency.attr("cy"),
-        ]);
-        line.attr("arrow-end", "classic-wide");
-        line.attr("stroke", "#FFF");
-        line.attr("stroke-width", 1);
+        var line = canvas.path();
+        styleLine(line);
+        drawLine(line, node, dep);
 
-        node.drag(handleDrag);
-        dependency.drag(handleDrag);
+        node.drag(function() { drawLine(line, node, dep); });
+        dep.drag(function() { drawLine(line, node, dep); });
 
         //mark the dependency as having a dependent.  Thus, should be on screen
-        dependency.used = true;
-        dependency.score++;
-
-        function handleDrag() {
-          line.attr("path", [
-            "M", node.attr("cx"), node.attr("cy"),
-            "L", dependency.attr("cx"), dependency.attr("cy"),
-          ]);
-        }
+        dep.used = true;
+        dep.score++;
       });
-    });
+    });*/
     
     //generate scores and whether a node is 'used' or not
-    /*Object.keys(data).map(function(el) {
+    dataKeys.map(function(el) {
       var node = canvas.getById(el);
       var nodeDeps = node.dependencies;
       if(nodeDeps) {
@@ -113,10 +143,10 @@ $(document).ready(function() {
           }
         });
       }
-    })*/
+    });
 
     //Prune all unused nodes
-    Object.keys(data).map(function(el) {
+    dataKeys.map(function(el) {
       var node = canvas.getById(el);
       if(!node.used) {
         node.remove();
