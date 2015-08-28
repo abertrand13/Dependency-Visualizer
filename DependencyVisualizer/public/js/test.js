@@ -21,7 +21,7 @@ $(document).ready(function() {
       var nodeOp = 0; //keep track of node ops.
 
       //add listeners for various important events
-      node.mousedown(function() {
+      node.mouseup(function() {
         /*console.log("Name: " + node.data("file"));
         console.log("Dependencies: " + node.data("dependencies"));
         console.log("Score: " + node.data("score"));*/
@@ -50,7 +50,7 @@ $(document).ready(function() {
                   node.lines = [];
                 }
               },
-              function() {}, "ERASELINES", true); //have it repeat for security
+              function() {}, "ERASELINES", true); //have it repeat for security.  Careful with cycles here.
           }
           //draw lines from the newly clicked node
           nodeOp++;
@@ -68,7 +68,8 @@ $(document).ready(function() {
         selectedNode = node;
       });
 
-      node.mouseup(function() {
+      //USED TO BE MOUSEUP
+      node.mousedown(function() {
         /*walkUpTree(node, function(thisNode) {
           if(thisNode.nodeGlow) {
             thisNode.nodeGlow.remove();
@@ -97,7 +98,7 @@ $(document).ready(function() {
       node.drag(function onMove(dx,dy, x, y) {
         node.attr("cx", x);
         node.attr("cy", y);
-      })
+      });
     });
 
     function styleLine(line) {
@@ -116,7 +117,7 @@ $(document).ready(function() {
     //Draw lines between nodes
     //There's probably some fancy algorithm to optimize this, but I'm probably not going to use it.
     //UNCOMMENT TO SEE SHITSHOW
-    /*dataKeys.map(function(el) {
+    dataKeys.map(function(el) {
       var node = canvas.getById(el);
       var nodeDeps = node.dependencies;
       if(!nodeDeps) { return; }
@@ -137,7 +138,7 @@ $(document).ready(function() {
         dep.used = true;
         dep.score++;
       });
-    });*/
+    });
     
     //generate scores and whether a node is 'used' or not
     dataKeys.map(function(el) {
