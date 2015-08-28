@@ -15,6 +15,10 @@ $(document).ready(function() {
       node.score = 0;
       node.used = false; //whether or not this node has either dependencies or dependents (TBD)
       node.dependencies = data[el].dependencies;
+      node.lines = [];
+      node.operations = [];;
+
+      var nodeOp = 0; //keep track of node ops.
 
       //add listeners for various important events
       node.mousedown(function() {
@@ -31,25 +35,27 @@ $(document).ready(function() {
         });*/
 
         if(selectedNode !== node) {
-          //remove lines from the old node
+          //erase lines from the old node
           if(selectedNode) {
+            nodeOp++;
             walkUpTree(selectedNode,
               function(node) {
                 //debugger;
                 if(node.lines) { //we need this check for dependencies that get called here, but not to create lines (because they themselves have no dependencies)
-                  console.log(node.lines.length);
+                  //console.log(node.lines.length);
                   node.lines.map(function(el) {
-                    console.log("Removing a line");
+                    //console.log("Removing a line");
                     el.remove();
                   });
                   node.lines = [];
                 }
               },
-              function() {});
+              function() {}, "ERASELINES", true); //have it repeat for security
           }
           //draw lines from the newly clicked node
+          nodeOp++;
           walkUpTree(node,
-            function(node) { node.lines = []; },
+            function() {},
             function(node, dep) {
               var line = canvas.path();
               node.lines.push(line);
@@ -57,7 +63,7 @@ $(document).ready(function() {
               styleLine(line);
               node.drag(function() { drawLine(line, node, dep); });
               dep.drag(function() { drawLine(line, node, dep); });
-            });
+            }, "DRAWLINES", false);
         }
         selectedNode = node;
       });
@@ -71,7 +77,11 @@ $(document).ready(function() {
         });*/
       });
 
-      function walkUpTree(node, nodeFn, nodeDepFn) {
+      function walkUpTree(node, nodeFn, nodeDepFn, operation, repeat) {
+        repeat = repeat || false;
+        op = (operation + nodeOp.toString()) || "generic";
+        if(node.operations.indexOf(op) !== -1 && !repeat) { return; } //controls for whether or not to repeat operations on a node
+        node.operations.push(operation);
         if(nodeFn) { nodeFn(node); }
         var nodeDeps = node.dependencies;
         if(nodeDeps) {
@@ -79,7 +89,7 @@ $(document).ready(function() {
             var dep = canvas.getById(el);
             if(!dep) {return;} //sometimes dependencies aren't found due to file system irregularites.  This should probably be fixed at some point...
             if(nodeDepFn) { nodeDepFn(node, dep); }
-            walkUpTree(dep, nodeFn, nodeDepFn);
+            walkUpTree(dep, nodeFn, nodeDepFn, operation, repeat);
           });
         }
       }
