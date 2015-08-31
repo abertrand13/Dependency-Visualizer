@@ -59,7 +59,10 @@ exports.map = function(req, res){
           }
         }
         
-        fileDependencies[processedPath]["dependencies"] = dependencies;
+        if(dependencies.length != 0) {
+          fileDependencies[processedPath]["dependencies"] = dependencies;
+        }
+
       } else {
         //If we've hit a directory, read through it
         readFileTree(newPath + '/');
