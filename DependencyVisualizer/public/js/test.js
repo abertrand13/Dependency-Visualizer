@@ -55,7 +55,7 @@ $(document).ready(function() {
       
       node.dblclick(function() {
         if(selectedNode !== node) {
-          //erase lines from the old node
+          //erase old node lines and move old node away from center
           if(selectedNode) {
             nodeOp++;
             walkUpTree(selectedNode,
@@ -68,19 +68,27 @@ $(document).ready(function() {
                 node.drag(handleDrag, null, null, node);
               },
               function() {}, "ERASELINES", true); //have it repeat for security.  Careful with cycles here.
+            setStartingPosition(selectedNode);
           }
-          //draw lines from the newly clicked node
-          nodeOp++;
-          walkUpTree(node,
-            function() {},
-            function(node, dep) {
-              var line = canvas.path();
-              node.lines.push(line);
-              drawLine(line, node, dep);
-              styleLine(line);
-              node.drag(function() { drawLine(line, node, dep); });
-              dep.drag(function() { drawLine(line, node, dep); });
-            }, "DRAWLINES", false);
+          
+
+          //move new node to center
+          node.animate({
+            "cx" : canvas.width/2,
+            "cy" : canvas.height/2
+          }, 500, "<>", function() {
+            nodeOp++;
+            walkUpTree(node,
+              function() {},
+              function(node, dep) {
+                var line = canvas.path();
+                node.lines.push(line);
+                drawLine(line, node, dep);
+                styleLine(line);
+                node.drag(function() { drawLine(line, node, dep); });
+                dep.drag(function() { drawLine(line, node, dep); });
+              }, "DRAWLINES", false);
+          });
         }
         selectedNode = node;
       });
