@@ -1,7 +1,8 @@
 $(document).ready(function() {
-	$.get("/map", function(data) {
+
+  $.get("/map", function(data) {
     var canvas = Raphael(0,0,window.innerWidth, window.innerHeight);
-    canvas.canvas.style.backgroundColor = "#333";
+    canvas.canvas.style.backgroundColor = "#2c3e50";
 
     var dataKeys = Object.keys(data);
     var selectedNode;
@@ -10,7 +11,7 @@ $(document).ready(function() {
     dataKeys.map(function(el) {
       var node = canvas.circle(Math.random() * canvas.width, Math.random() * canvas.height, 15);
       node.id = el;
-      node.attr("fill", "#f05");
+      node.attr("fill", colorHash(el));
       node.attr("stroke", "none");
       node.attr("stroke-width", 2); //fo lataz
       node.score = 0;
@@ -23,7 +24,7 @@ $(document).ready(function() {
       var nodeOp = 0; //keep track of node ops.
 
       //add listeners for various important events
-      node.mouseup(function() {
+      node.dblclick(function() {
         /*console.log("Name: " + node.data("file"));
         console.log("Dependencies: " + node.data("dependencies"));
         console.log("Score: " + node.data("score"));*/
@@ -50,6 +51,8 @@ $(document).ready(function() {
                     el.remove();
                   });
                   node.lines = [];
+                  node.undrag();
+                  node.drag(handleDrag, null, null, node);
                 }
               },
               function() {}, "ERASELINES", true); //have it repeat for security.  Careful with cycles here.
@@ -78,39 +81,10 @@ $(document).ready(function() {
             thisNode.nodeGlow = null;
           }
         });*/
-
-        console.log(node.id);
-        console.log(node.used);
       });
 
-      node.hover(function() {
-          node.attr("stroke", "#fff");
-          var x = node.attr("cx");
-          var y = node.attr("cy");
-          var r = node.attr("r");
-          var box = canvas.rect();
-          /*box.insertBefore(node);
-          box.attr("width", 200);
-          box.attr("height", 20);
-          box.attr("x", x);
-          box.attr("y", y - 2*r);
-          box.attr("fill", "white");
-          box.attr("stroke", "none");
-          node.box = box;*/
-          var text = canvas.text(x + r, y - r, node.id);
-          text.attr({
-            "text-anchor" : "start",
-            "fill" : "white",
-            "font-size" : 14,
-            "font-family" : "Helvetica"
-          });
-          node.text = text;
-        },
-        function() {
-          node.attr("stroke", "none");
-          //node.box.remove();
-          node.text.remove();
-        });
+      node.hover(hiliteNode, unHiliteNode, node, node);
+
 
       function walkUpTree(node, nodeFn, nodeDepFn, operation, repeat) {
         repeat = repeat || false;
@@ -129,11 +103,49 @@ $(document).ready(function() {
         }
       }
 
-      node.drag(function onMove(dx,dy, x, y) {
-        node.attr("cx", x);
-        node.attr("cy", y);
-      });
+      node.drag(handleDrag, null, null, node);
     });
+
+    function handleDrag(dx, dy, x, y) {
+      this.attr("cx", x);
+      this.attr("cy", y);
+    }
+
+    function hiliteNode() {
+      // this = node. passed in by context.
+      this.attr("stroke", "#fff");
+      var x = this.attr("cx");
+      var y = this.attr("cy");
+      var r = this.attr("r");
+      var box = canvas.rect();
+      /*box.insertBefore(node);
+      box.attr("width", 200);
+      box.attr("height", 20);
+      box.attr("x", x);
+      box.attr("y", y - 2*r);
+      box.attr("fill", "white");
+      box.attr("stroke", "none");
+      node.box = box;*/
+      if(!this.labelText) {
+        var text = canvas.text(x + r, y - r, this.id);
+        text.attr({
+          "text-anchor" : "start",
+          "fill" : "white",
+          "font-size" : 14,
+          "font-family" : "Helvetica"
+        });
+        this.labelText = text;
+      }
+    }
+
+    function unHiliteNode() {
+      this.attr("stroke", "none");
+      //node.box.remove();
+      if(this.labelText) {
+        this.labelText.remove();
+        delete this.labelText;
+      }
+    }
 
     function styleLine(line) {
       line.attr("arrow-end", "block-wide-long");
@@ -146,6 +158,19 @@ $(document).ready(function() {
         "M", node.attr("cx"), node.attr("cy"),
         "L", dep.attr("cx"), dep.attr("cy")
       ]);
+    }
+
+    function colorHash(name) {
+      //name will be fully qualified file path
+      //we want scripts in the same folder to have the same color
+      //eliminate file name
+      var folderPathRegex = new RegExp(/((\w+\/)+)\w+/g);
+      var match = folderPathRegex.exec(name);
+      if(!match) { return "#FFF"; }
+      match = match[1];
+      var colors = ["#1abc9c", "#2ecc71", "#3498db", "#9b59b6", "#f1c40f", "#e67e22", "#e74c3c", "#bdc3c7", "#c0392b"];
+      return colors[match.length % colors.length];
+
     }
 
     //Draw lines between nodes
@@ -270,7 +295,7 @@ $(document).ready(function() {
         node.attr("cy", canvas.height - Math.random() * box);
       }
       else if(node && node.score == 1) {
-        node.attr("cx", Math.random() * canvas.width);
+        node.attr("cx", 200 + Math.random() * (canvas.width - 200 - box));
         node.attr("cy", canvas.height - 50);
       }
       else if(node && node.pureDependent) {
@@ -307,5 +332,22 @@ $(document).ready(function() {
         dep.score++;
       });
     });*/
+
+    //set up node search
+    $('#searchbar').keyup(function() {
+      var text = $(this).val();
+      dataKeys.map(function(el) {
+        if(el.indexOf(text) != -1 && text.length > 0) {
+          var node = canvas.getById(el);
+          if(!node) { return; }
+          hiliteNode.call(node);
+        }
+        else {
+          var node = canvas.getById(el);
+          if(!node) { return; }
+          unHiliteNode.call(node);
+        }
+      });
+    });
 	});
 });
