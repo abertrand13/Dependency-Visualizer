@@ -9,6 +9,7 @@ $(document).ready(function() {
     //Set up canvas
     var canvas = Raphael(0,0,window.innerWidth, window.innerHeight);
     canvas.canvas.style.backgroundColor = "#2c3e50";
+    canvas.canvas.id = "canvas"
     var allNodes = canvas.set();
     
     //node 'state' variables
@@ -80,11 +81,6 @@ $(document).ready(function() {
       node.hover(hiliteNode, unHiliteNode, node, node);
 
       node.drag(handleDrag, null, null, node);
-
-      node.click(function() {
-        //console.log(node);
-      });
-
     });
 
     function drawLines(node) {
