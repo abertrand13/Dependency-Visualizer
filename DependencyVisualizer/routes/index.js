@@ -33,14 +33,11 @@ exports.map = function(req, res){
         if(!match) return;
 
         var processedPath = match[1]; //get matching string, (without initial ./ and ending .js)
-        if(processedPath.indexOf("window") != -1) {
-          debugger;
-        }
-        fileDependencies[processedPath] = {}; // trim the initial './'
+        fileDependencies[processedPath] = {};
 
-
-        var defineStatementRegex = new RegExp(/define\(\[\n(\s+\'[\w\/]+\',\n)+(\s+\'[\w\/]+\'\n)\],/g);
+        var defineStatementRegex = new RegExp(/define\(\[\n(\s+\'[\w\/!-]+\',\n)+(\s+\'[\w\/!-]+\'\n)\],/g);
         var defineStatement = defineStatementRegex.exec(fileData);
+
         if(!defineStatement) return;
         defineStatement = defineStatement[0]; //only get the matched string
 

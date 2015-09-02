@@ -1,6 +1,8 @@
 $(document).ready(function() {
 
   $.get("/map", function(data) {
+    console.log(data);
+
     //Set up canvas
     var canvas = Raphael(0,0,window.innerWidth, window.innerHeight);
     canvas.canvas.style.backgroundColor = "#2c3e50";
@@ -38,6 +40,7 @@ $(document).ready(function() {
       node.score = data[el].score;
       node.used = true;
       node.pureDependent = data[el].pureDependent;
+      node.centered = false;
       node.dependencies = data[el].dependencies || [];
       node.lines = [];
       node.operations = [];
@@ -68,7 +71,7 @@ $(document).ready(function() {
                 node.drag(handleDrag, null, null, node);
               },
               function() {}, "ERASELINES", true); //have it repeat for security.  Careful with cycles here.
-            setStartingPosition(selectedNode);
+            setStartingPosition(selectedNode, true);
           }
           
 
@@ -119,23 +122,35 @@ $(document).ready(function() {
       }
     });
 
-    function setStartingPosition(node) {
+    function setStartingPosition(node, animate) {
       var box = 300;
+      var cx, cy;
 
       if(node.score >= 5) {
-        node.attr("cx", canvas.width - Math.random() * box);
-        node.attr("cy", canvas.height - Math.random() * box);
+        cx = canvas.width - Math.random() * box;
+        cy = canvas.height - Math.random() * box;
       }
       else if(node.score == 1) {
-        node.attr("cx", 200 + Math.random() * (canvas.width - 200 - box));
-        node.attr("cy", canvas.height - 50);
+        cx = 200 + Math.random() * (canvas.width - 200 - box);
+        cy = canvas.height - 50;
       }
       else if(node.pureDependent) {
-        node.attr("cx", 400 + Math.random() * (canvas.width-500) );
-        node.attr("cy", 50);
+        cx = 400 + Math.random() * (canvas.width-500);
+        cy = 50;
       } else {
-        node.attr("cy", 50 + Math.random() * (canvas.height-100));
-        node.attr("cx", 50 + 400 * Math.exp(-1 * node.attr("cy")/(canvas.height/4)));
+        //note the switchy switchy here
+        cy = 50 + Math.random() * (canvas.height-100);
+        cx = 50 + 400 * Math.exp(-1 * cy/(canvas.height/4));
+      }
+
+      if(animate) {
+        node.animate({
+          "cx" : cx,
+          "cy" : cy
+        }, 500, "<>");
+      } else {
+        node.attr("cx", cx);
+        node.attr("cy", cy);
       }
     }
 
@@ -243,14 +258,47 @@ $(document).ready(function() {
     //set up node search
     $('#searchbar').keyup(function() {
       var text = $(this).val();
-      allNodes.forEach(function(node) {
-        if(node.id.indexOf(text) != -1 && text.length > 0) {
-          hiliteNode.call(node);
+      yOffset = 150; //starting
+      //if(text.length == 0) {
+      //}
+
+      //wait to search
+      setTimeout(function() {
+        //check to see that text hasn't changed.
+        if(text !== $('#searchbar').val()) { return; }
+        //check to see that the search string isn't blank
+        if(text.length == 0) {
+          allNodes.forEach(function(node) {
+            if(node.centered) {
+              unHiliteNode.call(node);
+              setStartingPosition(node, true);
+              node.centered = false;
+            }
+          });
+          return;
         }
-        else {  
-          unHiliteNode.call(node);
-        }
-      });
+
+        allNodes.forEach(function(node) {
+          if(node.id.indexOf(text) != -1) {
+            node.animate({
+              "cx": 400,
+              "cy": yOffset + 10 + node.attr("r")
+            }, 1000, "<>", function() {
+              //setTimeout(function() { hiliteNode.call(node); }, 500); //fudge time.
+              node.centered = true;
+              hiliteNode.call(node);
+            });
+            yOffset += 10 + node.attr("r") * 2;
+          }
+          else {  
+            if(node.centered) {
+              unHiliteNode.call(node);
+              setStartingPosition(node, true);
+              node.centered = false;
+            }
+          }
+        });
+      }, 500);
     });
 	});
 });
