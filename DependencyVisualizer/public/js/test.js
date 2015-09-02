@@ -3,11 +3,17 @@ $(document).ready(function() {
   $.get("/map", function(data) {
     console.log(data);
 
+    //FLAGS
+    var SHOW_EXTENDED_DEPENDENCIES = false;
+
     //Set up canvas
     var canvas = Raphael(0,0,window.innerWidth, window.innerHeight);
     canvas.canvas.style.backgroundColor = "#2c3e50";
     var allNodes = canvas.set();
-    var selectedNode;
+    
+    //node 'state' variables
+    var selectedNode; //The currently selected node.  This var is most useful when selecting a new node, in which case it represents the older, originally selected node
+    var nodeOp = 0;
 
     // Add proper attributes to nodes
     // This will allow us to filter down to only the nodes that need to be shown
@@ -54,46 +60,21 @@ $(document).ready(function() {
 
 
       //Add listeners to make things do things
-      var nodeOp = 0;
-      
       node.dblclick(function() {
         if(selectedNode !== node) {
           //erase old node lines and move old node away from center
           if(selectedNode) {
-            nodeOp++;
-            walkUpTree(selectedNode,
-              function(node) {
-                node.lines.map(function(el) {
-                  el.remove();
-                });
-                node.lines = [];
-                node.undrag();
-                node.drag(handleDrag, null, null, node);
-              },
-              function() {}, "ERASELINES", true); //have it repeat for security.  Careful with cycles here.
-            setStartingPosition(selectedNode, true);
+            eraseLines(selectedNode);
           }
-          
+          //move newly selected node to center and draw lines
+          drawLines(node);
 
-          //move new node to center
-          node.animate({
-            "cx" : canvas.width/2,
-            "cy" : canvas.height/2
-          }, 500, "<>", function() {
-            nodeOp++;
-            walkUpTree(node,
-              function() {},
-              function(node, dep) {
-                var line = canvas.path();
-                node.lines.push(line);
-                drawLine(line, node, dep);
-                styleLine(line);
-                node.drag(function() { drawLine(line, node, dep); });
-                dep.drag(function() { drawLine(line, node, dep); });
-              }, "DRAWLINES", false);
-          });
+          selectedNode = node;
+        } else {
+          eraseLines(node);
+          setStartingPosition(node, true);
+          selectedNode = null;
         }
-        selectedNode = node;
       });
 
       node.hover(hiliteNode, unHiliteNode, node, node);
@@ -101,26 +82,104 @@ $(document).ready(function() {
       node.drag(handleDrag, null, null, node);
 
       node.click(function() {
-        console.log(node);
+        //console.log(node);
       });
 
-      function walkUpTree(node, nodeFn, nodeDepFn, operation, repeat) {
-        repeat = repeat || false;
-        op = (operation + nodeOp.toString()) || "generic";
-        if(node.operations.indexOf(op) !== -1 && !repeat) { return; } //controls for whether or not to repeat operations on a node
-        node.operations.push(operation);
-        if(nodeFn) { nodeFn(node); }
-        var nodeDeps = node.dependencies;
-        if(nodeDeps) {
-          nodeDeps.map(function(el) {
-            var dep = canvas.getById(el);
-            if(!dep) {return;} //sometimes dependencies aren't found due to file system irregularites.  This should probably be fixed at some point...
-            if(nodeDepFn) { nodeDepFn(node, dep); }
-            walkUpTree(dep, nodeFn, nodeDepFn, operation, repeat);
-          });
-        }
-      }
     });
+
+    function drawLines(node) {
+      //move new node to center
+      node.animate({
+        "cx" : canvas.width/2,
+        "cy" : canvas.height/2
+      }, 500, "<>", function() {
+        //draw lines
+        if(SHOW_EXTENDED_DEPENDENCIES) {
+          nodeOp++;
+          walkUpTree(node,
+            function() {},
+            function(node, dep) {
+              var line = canvas.path();
+              node.lines.push(line);
+              drawLine(line, node, dep);
+              styleLine(line);
+              node.drag(function() { drawLine(line, node, dep); });
+              dep.drag(function() { drawLine(line, node, dep); });
+            }, "DRAWLINES", false);
+        } else {
+          var nodeDeps = node.dependencies;
+          if(nodeDeps) {
+            nodeDeps.map(function(el) { //perhaps factor this out to a function (common code)
+              var dep = canvas.getById(el);
+              if(!dep) return;
+              //bring dep to sort of center (congregate around main node)
+              dep.animate({
+                "cx" : canvas.width/2 - 250 + Math.random() * 500,
+                "cy" : canvas.height/2 - 250 + Math.random() * 500
+              }, 500, "<>", function() {
+                var line = canvas.path();
+                node.lines.push(line);
+                drawLine(line, node, dep);
+                styleLine(line);
+                node.drag(function() { drawLine(line, node, dep); });
+                dep.drag(function() { drawLine(line, node, dep); });
+              });
+              //dep.centered = true;
+            });
+          }
+        }
+      });
+    }
+
+    function eraseLines(selectedNode) {
+      if(SHOW_EXTENDED_DEPENDENCIES) {
+        nodeOp++;
+        walkUpTree(selectedNode,
+          function(node) {
+            node.lines.map(function(el) {
+              el.remove();
+            });
+            node.lines = [];
+            node.undrag();
+            node.drag(handleDrag, null, null, node);
+          },
+          function() {}, "ERASELINES", true); //have it repeat for security.  Careful with cycles here.
+        setStartingPosition(selectedNode, true);
+      } else {
+        selectedNode.lines.map(function(el) {
+          el.remove();
+        });
+        var nodeDeps = selectedNode.dependencies;
+        if(!nodeDeps) { return; }
+        nodeDeps.map(function(el) {
+          var dep = canvas.getById(el);
+          if(!dep) return;
+          setStartingPosition(dep, true);
+        });
+
+        selectedNode.lines = [];
+        selectedNode.undrag();
+        selectedNode.drag(handleDrag, null, null, selectedNode);
+        setStartingPosition(selectedNode, true);
+      }
+    }
+
+    function walkUpTree(node, nodeFn, nodeDepFn, operation, repeat) {
+      repeat = repeat || false;
+      op = (operation + nodeOp.toString()) || "generic";
+      if(node.operations.indexOf(op) !== -1 && !repeat) { return; } //controls for whether or not to repeat operations on a node
+      node.operations.push(operation);
+      if(nodeFn) { nodeFn(node); }
+      var nodeDeps = node.dependencies;
+      if(nodeDeps) {
+        nodeDeps.map(function(el) {
+          var dep = canvas.getById(el);
+          if(!dep) {return;} //sometimes dependencies aren't found due to file system irregularites.  This should probably be fixed at some point...
+          if(nodeDepFn) { nodeDepFn(node, dep); }
+          walkUpTree(dep, nodeFn, nodeDepFn, operation, repeat);
+        });
+      }
+    }
 
     function setStartingPosition(node, animate) {
       var box = 300;
@@ -264,7 +323,7 @@ $(document).ready(function() {
 
       //wait to search
       setTimeout(function() {
-        //check to see that text hasn't changed.
+        //check to see that text hasn't changed from when the timeout was set
         if(text !== $('#searchbar').val()) { return; }
         //check to see that the search string isn't blank
         if(text.length == 0) {
@@ -280,6 +339,7 @@ $(document).ready(function() {
 
         allNodes.forEach(function(node) {
           if(node.id.indexOf(text) != -1) {
+            unHiliteNode.call(node);
             node.animate({
               "cx": 400,
               "cy": yOffset + 10 + node.attr("r")
