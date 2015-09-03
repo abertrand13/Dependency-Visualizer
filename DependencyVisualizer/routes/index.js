@@ -35,7 +35,7 @@ exports.map = function(req, res){
         var processedPath = match[1]; //get matching string, (without initial ./ and ending .js)
         fileDependencies[processedPath] = {};
 
-        var defineStatementRegex = new RegExp(/define\(\[\n(\s+\'[\w\/!-]+\',\n)+(\s+\'[\w\/!-]+\'\n)\],/g);
+        var defineStatementRegex = new RegExp(/define\(\[\n(\s+\'[\w\/!$-]+\',\n)+(\s+\'[\w\/!$-]+\'\n)\],/g);
         var defineStatement = defineStatementRegex.exec(fileData);
 
         if(!defineStatement) return;

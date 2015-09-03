@@ -48,6 +48,7 @@ $(document).ready(function() {
       node.used = true;
       node.pureDependent = data[el].pureDependent;
       node.centered = false;
+      node.focused = false;
       node.dependencies = data[el].dependencies || [];
       node.lines = [];
       node.operations = [];
@@ -66,15 +67,18 @@ $(document).ready(function() {
           //erase old node lines and move old node away from center
           if(selectedNode) {
             eraseLines(selectedNode);
+            selectedNode.focused = false;
           }
           //move newly selected node to center and draw lines
           drawLines(node);
+          node.focused = true;
 
           selectedNode = node;
         } else {
           eraseLines(node);
           setStartingPosition(node, true);
           selectedNode = null;
+          node.focused = false;
         }
       });
 
@@ -89,6 +93,9 @@ $(document).ready(function() {
         "cx" : canvas.width/4,
         "cy" : canvas.height/2
       }, 500, "<>", function() {
+        //experimenting with zooming and stuff
+        //canvas.setViewBox(canvas.width/8, canvas.height/4, 400, 400, false);
+
         //draw lines
         if(SHOW_EXTENDED_DEPENDENCIES) {
           nodeOp++;
@@ -105,13 +112,16 @@ $(document).ready(function() {
         } else {
           var nodeDeps = node.dependencies;
           if(nodeDeps) {
-            nodeDeps.map(function(el) { //perhaps factor this out to a function (common code)
+            nodeDeps.map(function(el, i) { //perhaps factor this out to a function (common code)
               var dep = canvas.getById(el);
               if(!dep) return;
               //bring dep to sort of center (congregate around main node)
+              //calculate a bunch of angles and center them with respect to the half sector of the circle
+              var angle = Math.PI * (i/nodeDeps.length) + (Math.PI/nodeDeps.length/2);
               dep.animate({
-                "cx" : canvas.width/4 + Math.random() * 200,
-                "cy" : canvas.height/2 - 200 + Math.random() * 400
+                //350 here represents the radius of the center circle, minus some buffer
+                "cx" : canvas.width/4 + Math.sin(angle) * (350 - dep.attr("r")),
+                "cy" : canvas.height/2 + Math.cos(angle) * (350 - dep.attr("r"))
               }, 500, "<>", function() {
                 var line = canvas.path();
                 node.lines.push(line);
@@ -199,7 +209,6 @@ $(document).ready(function() {
         angle = 2*Math.PI/3 + Math.random() * Math.PI/3
       }
 
-      //var angle = Math.random() * Math.PI;
       var locusX = canvas.width/4;
       var locusY = canvas.height/2;
       var locusR = 400;
@@ -329,9 +338,7 @@ $(document).ready(function() {
     //set up node search
     $('#searchbar').keyup(function() {
       var text = $(this).val();
-      yOffset = 150; //starting
-      //if(text.length == 0) {
-      //}
+      yOffset = 50; //starting
 
       //wait to search
       setTimeout(function() {
@@ -340,7 +347,7 @@ $(document).ready(function() {
         //check to see that the search string isn't blank
         if(text.length == 0) {
           allNodes.forEach(function(node) {
-            if(node.centered) {
+            if(node.centered && !node.focused) {
               unHiliteNode.call(node);
               setStartingPosition(node, true);
               node.centered = false;
@@ -351,9 +358,10 @@ $(document).ready(function() {
 
         allNodes.forEach(function(node) {
           if(node.id.indexOf(text) != -1) {
+            //bring node to left for 'search results'
             unHiliteNode.call(node);
             node.animate({
-              "cx": 50,
+              "cx": 75,
               "cy": yOffset + 10 + node.attr("r")
             }, 1000, "<>", function() {
               //setTimeout(function() { hiliteNode.call(node); }, 500); //fudge time.
@@ -363,7 +371,8 @@ $(document).ready(function() {
             yOffset += 10 + node.attr("r") * 2;
           }
           else {  
-            if(node.centered) {
+            //move back to rest of nodes
+            if(node.centered && !node.focused) {
               unHiliteNode.call(node);
               setStartingPosition(node, true);
               node.centered = false;
