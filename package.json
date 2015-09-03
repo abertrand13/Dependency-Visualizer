@@ -1,12 +1,23 @@
 {
   "name": "DependencyVisualizer",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Visualize javascript dependencies, or something.",
+  "main": "index.js",
   "scripts": {
-    "start": "node app.js"
+    "test": "echo \"Tests not yet written\""
   },
-  "dependencies": {
-    "express": "3.5.1",
-    "jade": "*"
-  }
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abertrand13/Dependency-Visualizer"
+  },
+  "keywords": [
+    "dependencies",
+    "visualization"
+  ],
+  "author": "Alex Bertrand <alex.bertrand13@gmail.com> (http://www.alexbertrand.com/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/abertrand13/Dependency-Visualizer/issues"
+  },
+  "homepage": "https://github.com/abertrand13/Dependency-Visualizer"
 }
