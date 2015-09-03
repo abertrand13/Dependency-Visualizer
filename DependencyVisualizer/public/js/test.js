@@ -86,7 +86,7 @@ $(document).ready(function() {
     function drawLines(node) {
       //move new node to center
       node.animate({
-        "cx" : canvas.width/2,
+        "cx" : canvas.width/4,
         "cy" : canvas.height/2
       }, 500, "<>", function() {
         //draw lines
@@ -110,8 +110,8 @@ $(document).ready(function() {
               if(!dep) return;
               //bring dep to sort of center (congregate around main node)
               dep.animate({
-                "cx" : canvas.width/2 - 250 + Math.random() * 500,
-                "cy" : canvas.height/2 - 250 + Math.random() * 500
+                "cx" : canvas.width/4 + Math.random() * 200,
+                "cy" : canvas.height/2 - 200 + Math.random() * 400
               }, 500, "<>", function() {
                 var line = canvas.path();
                 node.lines.push(line);
@@ -178,25 +178,41 @@ $(document).ready(function() {
     }
 
     function setStartingPosition(node, animate) {
-      var box = 300;
-      var cx, cy;
+      var cx, cy, angle;
+
+      //When thinking about the angle here, flip the diagram 90 degrees to the search section (left edge on the screen) lies at the bottom
+      //So when I say 60 to 90 degrees, for example, it means approximately bottom right quadrant
 
       if(node.score >= 5) {
-        cx = canvas.width - Math.random() * box;
-        cy = canvas.height - Math.random() * box;
+        //sweep out 60 to 90 degrees
+        angle = Math.PI/3 + Math.random() * Math.PI/6;
       }
       else if(node.score == 1) {
-        cx = 200 + Math.random() * (canvas.width - 200 - box);
-        cy = canvas.height - 50;
+        //sweep out 0 to 60 degrees
+        angle = Math.random() * Math.PI/3;
       }
       else if(node.pureDependent) {
-        cx = 400 + Math.random() * (canvas.width-500);
-        cy = 50;
+        //sweep out 90 to 120 degrees
+        angle = Math.PI/2 + Math.random() * Math.PI/6;
       } else {
-        //note the switchy switchy here
-        cy = 50 + Math.random() * (canvas.height-100);
-        cx = 50 + 400 * Math.exp(-1 * cy/(canvas.height/4));
+        //sweep out 120 to 180 degrees
+        angle = 2*Math.PI/3 + Math.random() * Math.PI/3
       }
+
+      //var angle = Math.random() * Math.PI;
+      var locusX = canvas.width/4;
+      var locusY = canvas.height/2;
+      var locusR = 400;
+      var buffer = 50;
+
+      var xBound = (canvas.width - locusX) / Math.sin(angle);
+      //yBound calculation assumes vertical centering of locus
+      var yBound = Math.abs(canvas.height - locusY) / Math.abs(Math.cos(angle));
+
+      var length = xBound > yBound ? locusR + Math.random()*(yBound - locusR - buffer) : locusR + Math.random()*(xBound - locusR - buffer);
+      cx = locusX + length * Math.sin(angle);
+      cy = locusY + length * Math.cos(angle);
+
 
       if(animate) {
         node.animate({
@@ -337,7 +353,7 @@ $(document).ready(function() {
           if(node.id.indexOf(text) != -1) {
             unHiliteNode.call(node);
             node.animate({
-              "cx": 400,
+              "cx": 50,
               "cy": yOffset + 10 + node.attr("r")
             }, 1000, "<>", function() {
               //setTimeout(function() { hiliteNode.call(node); }, 500); //fudge time.
