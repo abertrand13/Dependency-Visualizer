@@ -4,11 +4,20 @@ var router = express.Router();
 
 
 router.get('/', function(req, res, next) {
-  console.log('Hello World!');
   res.render('index', { title: 'Dependency Visualizer' });
 });
 
 router.get('/map',  function(req, res, next) {
+  //get root path from config file
+  var root;
+  console.log('checking config');
+  if(fs.existsSync('config.txt')); {
+    rootFolder = fs.readFileSync('config.txt', {encoding: 'ascii'});
+    console.log(rootFolder);
+    rootFolder = rootFolder.trim();
+  }
+  root = root || '';
+
   //Recursively walk the file tree.
   var path = './';
   var fileDependencies = {};
@@ -52,7 +61,7 @@ router.get('/map',  function(req, res, next) {
           var exactMatch = match[1];
           if(blacklist.indexOf(exactMatch) == -1) {
               //HACKY AF FIX.  Fix this.
-              dependencies.push("megatest/scripts/" + exactMatch);
+              dependencies.push(rootFolder + exactMatch);
           }
         }
         
