@@ -4,7 +4,8 @@
   "description": "Visualize javascript dependencies, or something.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Tests not yet written\""
+    "test": "echo \"Tests not yet written\"",
+    "start": "node ./bin/www"
   },
   "repository": {
     "type": "git",
@@ -19,5 +20,13 @@
   "bugs": {
     "url": "https://github.com/abertrand13/Dependency-Visualizer/issues"
   },
-  "homepage": "https://github.com/abertrand13/Dependency-Visualizer"
+  "homepage": "https://github.com/abertrand13/Dependency-Visualizer",
+  "dependencies": {
+    "body-parser": "~1.13.2",
+    "debug": "~2.2.0",
+    "express": "~4.13.1",
+    "jade": "~1.11.0",
+    "morgan": "~1.6.1",
+    "serve-favicon": "~2.3.0"
+  }
 }

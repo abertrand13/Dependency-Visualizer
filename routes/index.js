@@ -1,14 +1,18 @@
 var fs = require('fs');
+var express = require('express');
+var router = express.Router();
 
 /*
  * GET home page.
  */
 
-exports.index = function(req, res) {
+router.get('/', function(req, res, next) {
+//exports.index = function(err, req, res, next) {
+  console.log('Hello World!');
   res.render('index', { title: 'Express' });
-}
+});
 
-exports.map = function(req, res){
+router.get('/map',  function(req, res, next) {
   //Recursively walk the file tree.
   var path = './';
   var fileDependencies = {};
@@ -68,4 +72,6 @@ exports.map = function(req, res){
   }
 
   res.json(fileDependencies);
-};
+});
+
+module.exports = router;
