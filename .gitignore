@@ -33,4 +33,4 @@ node_modules
 DependencyVisualizer/public/lib
 
 # Ignore the entirety of firebird/static/dev/scripts that I plopped in here for testing
-DependencyVisualizer/megatest
+DependencyVisualizer/megatest/
